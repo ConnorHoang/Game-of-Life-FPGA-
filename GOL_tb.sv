@@ -19,9 +19,8 @@ module gol_tb();
 
     initial begin
         $dumpfile("gol.vcd");
-        // $dumpvars(0, gol_tb);
-        $dumpvars(0, _48b, u_top.frame, u_top.delay_count, u_top.red_legacy, u_top.green_legacy, u_top.blue_legacy, 
-            u_top.red_next,   u_top.green_next,   u_top.blue_next);
+        $dumpvars(0, gol_tb);
+        // $dumpvars(0, _48b, u_top.frame, u_top.delay_count, u_top.red_legacy, u_top.green_legacy, u_top.blue_legacy, u_top.red_next,   u_top.green_next,   u_top.blue_next);
 
         // Initialize inputs
         clk = 0;
