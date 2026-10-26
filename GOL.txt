@@ -1,0 +1,75 @@
+// Game of Life on a 8x8 LED_matrix
+
+module top (
+    input logic clk,
+    input logic // 
+    output logic board_state
+);
+
+    logic read_address // Taken from LED matrix and used for calcs (or should this just be a running tally?)
+    logic write_address // Place LED instructions are read from and passed to ws2813b that are sent to LED
+
+    // Create a datastructure (probobly just a certain size of bits three deep to determine RGB color on/off for each color). Name current_board_state or something like that
+    // Same datastructure, but call it legacy_board_state
+
+    function logic [8:0] find_neighbors(input logic [8:0]);
+        //convert ordered location (0-63) structure to row/column
+        if ((row+1) % 8 AND (row+1) % 8);
+            //save this to the return
+        // convert row/column structure to ordered location (0-63) structure 
+        // return ordered_location <- has all neighbors flipped to 1, else set to 0.
+    endfunction
+
+    // Instance sample memory for red channel
+    memory #(
+        .INIT_FILE      ("spiral/red.txt")
+    ) u3 (
+        .clk            (clk), 
+        .read_address   (address), 
+        .read_data      (red_data)
+    );
+
+    // Instance the WS2812B output driver
+    ws2812b u4 (
+        .clk            (clk), 
+        .serial_in      (shift_reg[23]), 
+        .transmit       (transmit_pixel), 
+        .ws2812b_out    (ws2812b_out), 
+        .shift          (shift)
+    );
+
+    // Instance the controller
+    controller u5 (
+        .clk            (clk), 
+        .load_sreg      (load_sreg), 
+        .transmit_pixel (transmit_pixel), 
+        .pixel          (pixel), 
+        .frame          (frame)
+    );
+
+    always_ff @(posedge clk) begin
+        // for each node
+            //for each color
+                // Do math to determine current status in the game of life
+                // update color
+                if (load_sreg) begin // For now, I only need to worry about one color, but might as well leave in this if it isn't a hassle
+                    unique case ({ SW, BOOT })
+                        2'b00:
+                            shift_reg <= { green_data, 16'd0 };
+                        2'b01:
+                            shift_reg <= { 8'd0, red_data, 8'd0 };
+                        2'b10:
+                            shift_reg <= { 16'd0, blue_data };
+                        2'b11:
+                            shift_reg <= { green_data, red_data, blue_data };
+                    endcase         
+                    // update board_state to reflect changes regardless of case
+                    
+                end
+                else if (shift) begin
+                    shift_reg <= { shift_reg[22:0], 1'b0 }; // else, just keep the current light scheme
+                end
+        // current_board_state <= legacy_board_state
+    end
+
+endmodule
