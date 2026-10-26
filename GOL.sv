@@ -1,4 +1,4 @@
-// Conway's Game of Life on 8x8 LED Matrix (Red only)
+// Conway's Game of Life on 8x8 LED Matrix for three seperate colors
 `include "controller.sv"
 `include "ws2812b.sv"
 
@@ -9,12 +9,24 @@ module top (
     output logic _48b
 );
 
-    logic [63:0] seed_mem [0:0]; // Intermediary used to fit $readmemh's desired data format
-    logic [63:0] legacy_board;
-    logic [63:0] next_board;
+    logic [63:0] red_seed [0:0];
+    logic [63:0] green_seed [0:0];
+    logic [63:0] blue_seed [0:0];
+
+    logic [63:0] red_legacy;
+    logic [63:0] green_legacy;
+    logic [63:0] blue_legacy;
+
+    logic [63:0] red_next;
+    logic [63:0] green_next;
+    logic [63:0] blue_next;
+
     initial begin
-        $readmemh("seed.txt", seed_mem);
+        $readmemh("seed_r.txt", red_seed);
+        $readmemh("seed_g.txt", green_seed);
+        $readmemh("seed_b.txt", blue_seed);
     end
+
     logic data_transfered = 1'b0;
 
     // Controller and WS2812B
@@ -73,7 +85,9 @@ module top (
     // Sweep through all nodes
     always_comb begin
         for (int i = 0; i < 64; i = i + 1) begin
-            next_board[i] = calc_next_cell(legacy_board[i], find_neighbors(legacy_board, i[5:0]));
+            red_next[i]   = calc_next_cell(red_legacy[i],   find_neighbors(red_legacy,   i[5:0]));
+            green_next[i] = calc_next_cell(green_legacy[i], find_neighbors(green_legacy, i[5:0]));
+            blue_next[i]  = calc_next_cell(blue_legacy[i],  find_neighbors(blue_legacy,  i[5:0]));
         end
     end
 
@@ -83,7 +97,9 @@ module top (
     always_ff @(posedge clk) begin
         // Move data to proper place and format
         if (!data_transfered) begin
-            legacy_board <= seed_mem[0];
+            red_legacy   <= red_seed[0]; 
+            green_legacy <= green_seed[0];
+            blue_legacy  <= blue_seed[0];
             data_transfered <= 1'b1;
             last_frame <= frame;
         end
@@ -91,10 +107,12 @@ module top (
         last_frame <= frame;
          // Keeps fom running in parralel with above code
         if (frame != last_frame) begin
-            // Slow down board updates can run and is good speed for humans
+            // Slow down board updates so code can run and display is good speed for humans
             if (delay_count == 4'b100) begin
                 delay_count <= 4'b000;
-                legacy_board <= next_board;
+                red_legacy   <= red_next;
+                green_legacy <= green_next;
+                blue_legacy  <= blue_next;
             end 
             else begin
                 delay_count <= delay_count + 4'b001;
@@ -104,10 +122,11 @@ module top (
 
     always_ff @(posedge clk) begin
         if (load_sreg) begin
-            if (legacy_board[pixel]) // ALive
-                shift_reg <= {8'h00, 8'h20, 8'h00};
-            else // Dead
-                shift_reg <= 24'h000000;
+            shift_reg <= {
+                green_legacy[pixel] * 8'h20,
+                red_legacy[pixel] * 8'h20,
+                blue_legacy[pixel] * 8'h20
+            };
         end
         else if (shift) begin
             shift_reg <= {shift_reg[22:0], 1'b0};
